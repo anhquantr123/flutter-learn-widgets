@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:hive_flutter/hive_flutter.dart';
+import 'package:todo_simple/database/todo_database.dart';
 import 'package:todo_simple/widgets/todo_item.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -9,11 +11,20 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // create list todo
-  List todoList = [
-    ['reading book ', false],
-    ['listening music  ', false],
-  ];
+  // open box data
+  final myBox = Hive.box('myBox');
+
+  TodoDataBase db = TodoDataBase();
+
+  @override
+  void initState() {
+    if (myBox.get("TODOLIST") == null) {
+      db.createInitData();
+    } else {
+      db.loadData();
+    }
+    super.initState();
+  }
 
   // text editing controller
   final _createNewTaskController = TextEditingController();
@@ -21,7 +32,7 @@ class _HomeScreenState extends State<HomeScreen> {
   // function onChange task
   void onChangeTask(bool? value, index) {
     setState(() {
-      todoList[index][1] = !todoList[index][1];
+      db.toDoList[index][1] = !db.toDoList[index][1];
     });
   }
 
@@ -61,11 +72,12 @@ class _HomeScreenState extends State<HomeScreen> {
                         onTap: () {
                           // get name task add list
                           setState(() {
-                            todoList
+                            db.toDoList
                                 .add([_createNewTaskController.text, false]);
                             _createNewTaskController.clear();
                             Navigator.of(context).pop();
                           });
+                          db.updateData();
                         },
                         child: Container(
                           padding: const EdgeInsets.symmetric(
@@ -115,16 +127,17 @@ class _HomeScreenState extends State<HomeScreen> {
           ],
         ),
         body: ListView.builder(
-            itemCount: todoList.length,
+            itemCount: db.toDoList.length,
             itemBuilder: (context, index) {
               return ToDoItem(
                   onDelete: (context) {
                     setState(() {
-                      todoList.removeAt(index);
+                      db.toDoList.removeAt(index);
                     });
+                    db.updateData();
                   },
-                  isCompleted: todoList[index][1],
-                  taskName: todoList[index][0],
+                  isCompleted: db.toDoList[index][1],
+                  taskName: db.toDoList[index][0],
                   onChanged: (value) => onChangeTask(value, index));
             }));
   }
